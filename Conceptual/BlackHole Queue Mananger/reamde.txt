@@ -27,3 +27,8 @@ Tasks where S(t) > R are in the Accretion Disk. This is where your "rearrangemen
     Tidal Forces: Tasks in the disk aren't just sitting there; they are sorted by Angular Momentum (similarity).
 
     If Task A and Task B both require a specific database "coordinate," they should be grouped so that when Task A crosses the horizon, Task B is "pulled in" with it to save on context-switching costs.
+
+4. improvements needed to be made:
+Factor weighting
+Normalization
+Better "tidal" effects - Batching and clustering
