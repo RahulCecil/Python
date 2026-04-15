@@ -146,7 +146,10 @@ ax_thru.set_xlabel("Arrival Tick")
 ax_thru.set_ylabel("Finish Tick")
 
 plt.tight_layout()
-plt.show()import numpy as np
+plt.show()
+
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
