@@ -7,9 +7,9 @@ is on the outside that the Physics helps us better manage high amounts of traffi
 taks get placed further out and fall in, accelerating in time, ensuring they dont stay forecver or get stuck in the queue. The light ones start cose and will 
 quickly enter the queue.
 
-There is also a simulation script in here which simulates this model for 10,000 tasks distrubuted between light, medium, heavy and ultra heavy tasks. to show 
-how they behave when randomly entering the queue. We see the preliminary tests already  indicate ribuustness. In thenext steps we will zry and push the system 
-to its limits and find edge cases.
+There is also a simulation script in here which simulates this model for 10,000 tasks distributed between light, medium, heavy and ultra heavy tasks, to show 
+how they behave when randomly entering the queue. We see the preliminary tests already indicate robustness, with all tasks being passed through and none left in the void. 
+In the next steps we will try and push the system to its limits and find edge cases.
 
 1. Defining the Event Horizon (R)
 
@@ -42,7 +42,11 @@ Tasks where S(t) > R are in the Accretion Disk. This is where your "rearrangemen
 
     If Task A and Task B both require a specific database "coordinate," they should be grouped so that when Task A crosses the horizon, Task B is "pulled in" with it to save on context-switching costs.
 
-4. improvements needed to be made:
-Factor weighting
-Normalization
-Better "tidal" effects - Batching and clustering
+4. Improvements Epected to be Made:
+    Factor weighting: By weighing the features accoring to  logical system we can optimize the system further and tweak how our black hole performs.
+
+    Normalization. by normalizing each dimension we ensure mathemtical simplicity and prevent wastage of resources.
+    
+    Better "tidal" effects - Batching and clustering: By implementing better batching and clustering outside the event horizon we can attempt to get "similar" task to clump together and get pulled in faster.
+
+    Pauli exclusion: We could introude quantization in the space, ensuring tasks cannot occoupy too similar ponts in the space, ensuring that our clumps themselves don't start getting out of control.
