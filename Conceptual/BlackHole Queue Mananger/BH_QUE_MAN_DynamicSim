@@ -2,6 +2,134 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# --- 1. The Physics Engine ---
+
+class Task:
+    def __init__(self, task_id, features, arrival_time, category):
+        self.task_id = task_id
+        self.features = np.array(features)
+        # Store individual dimensions
+        self.complexity = features[0]
+        self.length = features[1]
+        self.io_intensity = features[2]
+        # Calculate Euclidean Distance (The 'Mass')
+        self.initial_dist = np.linalg.norm(self.features) 
+        
+        self.arrival_time = arrival_time
+        self.finish_time = None
+        self.wait_time = 0
+        self.current_s = self.initial_dist
+        self.category = category  # Fixed: Proper assignment
+
+class SingularityQueue:
+    def __init__(self, capacity=70, gravity=0.035):
+        self.capacity = capacity
+        self.gravity = gravity
+        self.active_tasks = []
+        self.finished_tasks = []
+        self.horizon_history = []
+        self.density_history = []
+        self.time_history = []
+
+    def run(self, incoming_tasks, max_ticks=3000):
+        current_tick = 0
+        while (incoming_tasks or self.active_tasks) and current_tick < max_ticks:
+            # Add arriving tasks
+            while incoming_tasks and incoming_tasks[0].arrival_time <= current_tick:
+                self.active_tasks.append(incoming_tasks.pop(0))
+
+            # Event Horizon (R) shrinks as density increases
+            density = len(self.active_tasks)
+            R = self.capacity / (density + 1)
+            
+            self.horizon_history.append(R)
+            self.density_history.append(density)
+            self.time_history.append(current_tick)
+
+            # Check for 'Capture'
+            captured = []
+            for task in self.active_tasks:
+                age = current_tick - task.arrival_time
+                # S(t) = d - (G * t^2)
+                task.current_s = task.initial_dist - (self.gravity * (age**2))
+                if task.current_s <= R:
+                    captured.append(task)
+
+            # Process the task closest to the singularity
+            if captured:
+                captured.sort(key=lambda x: x.current_s)
+                to_process = captured[0]
+                to_process.finish_time = current_tick
+                to_process.wait_time = current_tick - to_process.arrival_time
+                self.finished_tasks.append(to_process)
+                self.active_tasks.remove(to_process)
+
+            current_tick += 1
+
+# --- 2. Simulation Logic ---
+
+np.random.seed(42)
+num_tasks = 120
+arrival_times = np.cumsum(np.random.poisson(5, num_tasks))
+all_tasks = []
+
+for i, arrival in enumerate(arrival_times):
+    roll = np.random.random()
+    if roll < 0.20:
+        f = np.random.uniform(1, 15, 3); cat = "Light"
+    elif roll < 0.60:
+        f = np.random.uniform(20, 50, 3); cat = "Medium"
+    elif roll < 0.90:
+        f = np.random.uniform(60, 90, 3); cat = "Heavy"
+    else:
+        f = np.random.uniform(100, 160, 3); cat = "Extra Heavy"
+    all_tasks.append(Task(f"T{i}", f, arrival, cat))
+
+queue = SingularityQueue()
+queue.run(all_tasks.copy())
+
+# --- 3. Visualization ---
+
+df = pd.DataFrame([{
+    "Category": t.category, "Complexity": t.complexity, "Length": t.length,
+    "IO": t.io_intensity, "Mass": t.initial_dist, "Wait": t.wait_time,
+    "Arrival": t.arrival_time, "Finish": t.finish_time
+} for t in queue.finished_tasks])
+
+colors = {"Light": "#00f2ff", "Medium": "#39ff14", "Heavy": "#ff9900", "Extra Heavy": "#ff0055"}
+fig = plt.figure(figsize=(18, 12))
+gs = fig.add_gridspec(3, 4)
+
+# Top: Feature Correlations
+f_list = [('Complexity', 'Complexity'), ('Length', 'Length'), ('IO', 'IO Intensity'), ('Mass', 'Aggregate Mass')]
+for i, (col, title) in enumerate(f_list):
+    ax = fig.add_subplot(gs[0, i])
+    for cat, color in colors.items():
+        sub = df[df['Category'] == cat]
+        ax.scatter(sub[col], sub['Wait'], c=color, label=cat, edgecolors='black', alpha=0.7)
+    ax.set_title(f"Wait vs {title}")
+    ax.grid(True, alpha=0.3)
+    if i == 0: ax.legend()
+
+# Middle: Horizon vs Density
+ax_dyn = fig.add_subplot(gs[1, :])
+ax_dyn.plot(queue.time_history, queue.horizon_history, color='black', label="Event Horizon (R)")
+ax_dyn.fill_between(queue.time_history, queue.density_history, color='orange', alpha=0.3, label="Queue Density")
+ax_dyn.set_title("System Pressure: Event Horizon Response to Queue Density")
+ax_dyn.legend()
+
+# Bottom: Arrival vs Finish
+ax_lag = fig.add_subplot(gs[2, :])
+ax_lag.scatter(df["Arrival"], df["Finish"], c=df["Wait"], cmap='plasma')
+ax_lag.plot([0, max(df["Finish"])], [0, max(df["Finish"])], 'r--', alpha=0.6, label="Zero Wait Line")
+ax_lag.set_title("Throughput: Task Arrival vs. Finish Time")
+ax_lag.legend()
+
+plt.tight_layout()
+plt.show()import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
 class DynamicTask:
     def __init__(self, task_id, features, arrival_time):
         self.task_id = task_id
