@@ -1,3 +1,7 @@
+This queue managing algorithm was inspired by black holes and -dimensional optimization startegies. We keep it simple by simply distributing our tasks along an n-dimensional features space where each dimension represents a parameter that impacts the metric by which a task is prioritized in the queue(memory usage, expected time, complexity, etc.). Each task is an object in the "gravitational" field of the "singularity" (the processor). We are simply using their "Physics" to determine how they fall into the singularity one at a time. To maintain the black hole analogy and also to allow for small tasks to pass through quickly, we  set up an "event horizon". When objects get caprztured in this radius (their distance is less than or equal to the radius) they follow a simpler FIFO queue. It is on the outside that the Physics helps us better manage high amounts of traffic and ensure all tasks get completed and follow a "fair" queueing. The heavier taks get placed further out and fall in, accelerating in time, ensuring they dont stay forecver or get stuck in the queue. The light ones start cose and will quickly enter the queue.
+
+There is also a simulation script in here which simulates this model for 10,000 tasks distrubuted between light, medium, heavy and ultra heavy tasks. to show how they behave when randomly entering the queue. We see the preliminary tests already  indicate ribuustness. In thenext steps we will zry and push the system to its limits and find edge cases.
+
 1. Defining the Event Horizon (R)
 
 In physics, the Schwarzschild radius (Rs​) is determined by mass. In our queue, R should be determined by System Pressure.
@@ -9,7 +13,7 @@ In physics, the Schwarzschild radius (Rs​) is determined by mass. In our queue
 
     The Logic: When the queue is empty (ρ is low), the horizon R expands, "sucking in" even heavy tasks for immediate processing. When the system is slammed (ρ is high), R shrinks, and only the tiniest tasks (those with a distance d<R) can cross the horizon to be processed immediately.
 
-2. Calculating the Priority Score (S) as a "Falling" Distance
+2. Calculating the Priority Score (S) as a "Falling" Distance scaled by our Gravitational Constant
 
 Instead of a fixed score, we treat every task as an object falling toward the singularity. Its "Distance from Origin" (d) is not static; it is collapsing.
     S(t) = d_initial​ − ( G x Age^2 / 2 ​)
