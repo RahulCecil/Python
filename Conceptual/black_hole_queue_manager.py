@@ -1,55 +1,59 @@
 import numpy as np
 import time
-import heapq
 
-class Task:
-    def __init__(self, name, complexity, length):
-        self.name = name
-        self.coords = np.array([complexity, length])
-        self.entry_time = time.time()
+class SingularityQueue:
+    def __init__(self, capacity=100, gravity=0.5):
+        self.capacity = capacity
+        self.gravity = gravity
+        self.tasks = []
+
+    def get_event_horizon(self):
+        # R shrinks as the queue density increases
+        density = len(self.tasks)
+        return self.capacity / (density + 1)
+
+    def add_task(self, name, features):
+        # features = [complexity, length, memory_req, etc.]
+        initial_dist = np.linalg.norm(features)
+        self.tasks.append({
+            "name": name,
+            "d_initial": initial_dist,
+            "entry_time": time.time(),
+            "features": features
+        })
+
+    def step(self):
+        """Processes the queue by finding tasks that have crossed the horizon."""
+        R = self.get_event_horizon()
+        now = time.time()
         
-    def get_distance(self):
-        # Euclidean distance from origin
-        return np.linalg.norm(self.coords)
+        # Calculate current 'collapsed distance' S for all tasks
+        for task in self.tasks:
+            age = now - task["entry_time"]
+            # S(t) = d - (G * t^2)
+            task["S"] = task["d_initial"] - (self.gravity * (age**2))
 
-    def get_priority_score(self):
-        # S = Distance / (Age^2 + 1) 
-        # Lower score = Higher priority
-        age = time.time() - self.entry_time
-        return self.get_distance() / (age**2 + 1)
+        # Split tasks into 'Captured' and 'Accretion Disk'
+        captured = [t for t in self.tasks if t["S"] <= R]
+        accretion_disk = [t for t in self.tasks if t["S"] > R]
 
-class BalancedQueue:
-    def __init__(self, fast_track_radius=5.0):
-        self.queue = []
-        self.radius = fast_track_radius
+        # 1. Process Captured (The Event Horizon)
+        # Small tasks zip through; heavy tasks eventually cross as S collapses.
+        if captured:
+            # Sort captured tasks so the 'closest' to singularity goes first
+            captured.sort(key=lambda x: x["S"])
+            processing = captured.pop(0)
+            self.tasks = captured + accretion_disk
+            return f"EXECUTING: {processing['name']} (Crossed R={R:.2f} with S={processing['S']:.2f})"
 
-    def add_task(self, task):
-        score = task.get_priority_score()
-        # Add to min-heap
-        heapq.heappush(self.queue, (score, task))
+        # 2. Rearrange Accretion Disk (Optimization logic here)
+        # We could sort the disk by feature similarity to optimize next steps
+        self.tasks = accretion_disk
+        return "STASIS: All tasks still in Accretion Disk."
 
-    def process_next(self):
-        if not self.queue:
-            return None
-        
-        # We re-sort or re-heapify if we want to be truly dynamic, 
-        # but for simplicity, we pop the current best
-        score, task = heapq.heappop(self.queue)
-        
-        if task.get_distance() < self.radius:
-            print(f"[FAST TRACK] Processing Small Task: {task.name}")
-        else:
-            print(f"[STRATEGY] Processing Heavy Task: {task.name} (Dist: {task.get_distance():.2f})")
-        return task
+# --- Usage ---
+sq = SingularityQueue(capacity=50)
+sq.add_task("Heavy_Compute", [40, 80]) # Far from origin
+sq.add_task("Quick_Ping", [2, 1])      # Near origin
 
-# --- Execution ---
-manager = BalancedQueue(fast_track_radius=10.0)
-
-# A heavy task
-manager.add_task(Task("BigData_Job", complexity=50, length=200))
-# A small task
-manager.add_task(Task("Ping_Check", complexity=1, length=2))
-
-# The small task will always come out first because its distance is tiny
-manager.process_next() 
-manager.process_next()
+print(sq.step()) # Likely executes Quick_Ping immediately
