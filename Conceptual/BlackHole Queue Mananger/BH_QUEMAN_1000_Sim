@@ -1,0 +1,149 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# --- 1. YOUR ORIGINAL CLASS (Preserved) ---
+class SingularityQueue:
+    def __init__(self, capacity=100, gravity=0.5):
+        self.capacity = capacity
+        self.gravity = gravity
+        self.tasks = []
+        # Added for simulation tracking
+        self.finished_log = []
+        self.horizon_history = []
+        self.density_history = []
+
+    def get_event_horizon(self):
+        # R shrinks as the queue density increases
+        density = len(self.tasks)
+        return self.capacity / (density + 1)
+
+    def add_task(self, name, features, virtual_time, category):
+        # Preserving your dictionary-based task structure
+        initial_dist = np.linalg.norm(features)
+        self.tasks.append({
+            "name": name,
+            "d_initial": initial_dist,
+            "entry_time": virtual_time, # Using virtual time for simulation
+            "features": features,
+            "category": category       # For plotting colors
+        })
+
+    def step(self, current_time):
+        """Processes the queue by finding tasks that have crossed the horizon."""
+        R = self.get_event_horizon()
+        
+        # Log state for plotting
+        self.horizon_history.append(R)
+        self.density_history.append(len(self.tasks))
+        
+        # Calculate current 'collapsed distance' S for all tasks
+        for task in self.tasks:
+            age = current_time - task["entry_time"]
+            # S(t) = d - (G * t^2)
+            task["S"] = task["d_initial"] - (self.gravity * (age**2))
+
+        # Split tasks into 'Captured' and 'Accretion Disk'
+        captured = [t for t in self.tasks if t["S"] <= R]
+        accretion_disk = [t for t in self.tasks if t["S"] > R]
+
+        if captured:
+            # Sort captured tasks so the 'closest' to singularity goes first
+            captured.sort(key=lambda x: x["S"])
+            processing = captured.pop(0)
+            self.tasks = captured + accretion_disk
+            
+            # Record finish stats for plotting
+            processing['finish_time'] = current_time
+            processing['wait_time'] = current_time - processing['entry_time']
+            self.finished_log.append(processing)
+            return f"EXECUTING: {processing['name']}"
+
+        self.tasks = accretion_disk
+        return "STASIS"
+
+# --- 2. 1,000 TASK SIMULATION SETUP ---
+
+np.random.seed(42)
+num_tasks = 1000
+# Random arrival times (Poisson distribution averaging 5 ticks)
+arrival_times = np.cumsum(np.random.poisson(5, num_tasks))
+incoming_tasks = []
+
+# Generate 1,000 tasks with the requested distribution
+for i in range(num_tasks):
+    roll = np.random.random()
+    if roll < 0.20:
+        f = np.random.uniform(1, 15, 3); cat = "Light"
+    elif roll < 0.60:
+        f = np.random.uniform(20, 50, 3); cat = "Medium"
+    elif roll < 0.90:
+        f = np.random.uniform(60, 90, 3); cat = "Heavy"
+    else:
+        f = np.random.uniform(100, 160, 3); cat = "Extra Heavy"
+    
+    incoming_tasks.append({
+        "name": f"Task_{i}", 
+        "features": f, 
+        "arrival": arrival_times[i], 
+        "category": cat
+    })
+
+# Initialize Queue (Capacity adjusted for high volume)
+sq = SingularityQueue(capacity=120, gravity=0.035)
+
+current_tick = 0
+max_ticks = 10000
+
+# Simulation Loop
+while (incoming_tasks or sq.tasks) and current_tick < max_ticks:
+    # Add tasks that have 'arrived' at this tick
+    while incoming_tasks and incoming_tasks[0]['arrival'] <= current_tick:
+        t = incoming_tasks.pop(0)
+        sq.add_task(t['name'], t['features'], t['arrival'], t['category'])
+    
+    # Run the physics step
+    sq.step(current_tick)
+    current_tick += 1
+
+# --- 3. 3-TIER DASHBOARD PLOTTING ---
+
+df = pd.DataFrame(sq.finished_log)
+# Extract individual features for plotting
+df['Complexity'] = df['features'].apply(lambda x: x[0])
+df['Length'] = df['features'].apply(lambda x: x[1])
+df['IO'] = df['features'].apply(lambda x: x[2])
+
+colors = {"Light": "#00f2ff", "Medium": "#39ff14", "Heavy": "#ff9900", "Extra Heavy": "#ff0055"}
+fig = plt.figure(figsize=(18, 12))
+gs = fig.add_gridspec(3, 4)
+
+# ROW 1: Feature Correlations
+metrics = [('Complexity', 'Complexity'), ('Length', 'Length'), ('IO', 'IO Intensity'), ('d_initial', 'Aggregate Mass')]
+for i, (col, title) in enumerate(metrics):
+    ax = fig.add_subplot(gs[0, i])
+    for cat, color in colors.items():
+        subset = df[df['category'] == cat]
+        ax.scatter(subset[col], subset['wait_time'], c=color, label=cat, edgecolors='black', alpha=0.5, s=25)
+    ax.set_title(f"Wait vs {title}")
+    ax.grid(True, alpha=0.3)
+    if i == 0: ax.legend()
+
+# ROW 2: System Dynamics
+ax_dyn = fig.add_subplot(gs[1, :])
+ax_dyn.plot(sq.horizon_history, color='black', linewidth=1, label="Horizon Radius (R)")
+ax_dyn.fill_between(range(len(sq.density_history)), sq.density_history, color='orange', alpha=0.2, label="Queue Density")
+ax_dyn.set_title("System Dynamics: Event Horizon Response to 1,000-Task Load")
+ax_dyn.set_xlabel("Ticks")
+ax_dyn.legend(loc='upper right')
+
+# ROW 3: Latency Map
+ax_thru = fig.add_subplot(gs[2, :])
+ax_thru.scatter(df["entry_time"], df["finish_time"], c=df["wait_time"], cmap='plasma', s=10)
+ax_thru.plot([0, current_tick], [0, current_tick], 'r--', alpha=0.6, label="Instant Processing Line")
+ax_thru.set_title("Arrival vs. Finish Time (Global Throughput)")
+ax_thru.set_xlabel("Arrival Tick")
+ax_thru.set_ylabel("Finish Tick")
+
+plt.tight_layout()
+plt.show()
