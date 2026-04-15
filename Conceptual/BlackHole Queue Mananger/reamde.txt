@@ -1,11 +1,12 @@
-This queue managing algorithm was inspired by black holes and -dimensional optimization startegies. We keep it simple by simply distributing our tasks along 
-an n-dimensional feature space where each dimension represents a parameter that impacts the metric by which a task is prioritized in the queue(memory usage, 
+This queue managing algorithm was inspired by black holes and n-dimensional optimization startegies. We keep it simple by simply distributing our tasks along 
+an n-dimensional feature space where each dimension represents a parameter that impacts the metric by which a task is prioritized in the queue (memory usage, 
 expected time, complexity, etc.). Each task is an object in the "gravitational" field of the "singularity" (the processor). We are simply using their "Physics" 
 to determine how they fall into the singularity one at a time. To maintain the black hole analogy and also to allow for small tasks to pass through quickly, we 
 set up an "event horizon". When objects get caprztured in this radius (their distance is less than or equal to the radius) they follow a simpler FIFO queue. It 
-is on the outside that the Physics helps us better manage high amounts of traffic and ensure all tasks get completed and follow a "fair" queueing. The heavier 
-taks get placed further out and fall in, accelerating in time, ensuring they dont stay forecver or get stuck in the queue. The light ones start cose and will 
-quickly enter the queue.
+is on the outside that the Physics helps us better manage high amounts of traffic and ensure all tasks get completed and follow a "natural" queueing order. The 
+heavier taks get placed further out and fall in, accelerating over time. This ensures that they dont stay forecver in orbit, thus getting stuck in the queue. 
+The lighter tasks start close and will quickly enter the queue FIFO queue, but our system ensures any outliers will have to enter the more complex prioritization 
+scheme.
 
 There is also a simulation script in here which simulates this model for 10,000 tasks distributed between light, medium, heavy and ultra heavy tasks, to show 
 how they behave when randomly entering the queue. We see the preliminary tests already indicate robustness, with all tasks being passed through and none left in the void. 
